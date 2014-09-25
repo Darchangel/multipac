@@ -1,17 +1,15 @@
 local character = require("character")
 local maps = require("maps")
 
-local MOVE_STEP = 10
-
 local dude
 local map
 
 function love.load() --[[***************************]]--
-    if arg[#arg] == "-debug" then require("mobdebug").start() end
+    --if arg[#arg] == "-debug" then require("mobdebug").start() end
     love.graphics.setBackgroundColor(0, 0, 0)
 
     local charImage = love.graphics.newImage("img/Red.png")
-    dude = character.create(charImage, 100, 100, MOVE_STEP)
+    dude = character.create(charImage, 100, 100)
 
     local wallImage = love.graphics.newImage("img/wall.png")
     local powerImage = love.graphics.newImage("img/power.png")
@@ -23,7 +21,7 @@ end
 
 
 function love.update(timeDelta) --[[***************************]]--
-    dude:move()
+    dude:move(timeDelta)
 end
 
 

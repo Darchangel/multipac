@@ -1,29 +1,70 @@
-function createCharacter(image, startX, startY, moveStep)
+local MAX_SPEED = 8
+local ACCELERATION = 3.5
+local DRAG = 13
+
+
+function createCharacter(image, startX, startY)
+
+    local width = image:getWidth()
+    local height = image:getHeight()
 
     return {
-        x = startX,
-        y = startY,
+        position = {x = startX, y = startY},
+        velocity = {x = 0, y = 0},
+        max_velocity = {x = MAX_SPEED, y = MAX_SPEED},
+        acceleration = ACCELERATION,
+        drag = DRAG,
         image = image,
+
         draw = function(self)
-                love.graphics.draw(self.image, self.x, self.y)
-            end,
-        move = function(self)
-                if love.keyboard.isDown("up") and self.y > 0 then
-                    self.y = math.max(self.y - moveStep, 0)
-                end
+            love.graphics.draw(self.image, self.position.x, self.position.y)
+        end,
 
-                if love.keyboard.isDown("down") and self.y < (love.window.getHeight() - self.image:getHeight()) then
-                    self.y = math.min(self.y + moveStep, (love.window.getHeight() - self.image:getHeight()))
-                end
+        move = function(self, timeDelta)
+            local movingX = false
+            local movingY = false
 
-                if love.keyboard.isDown("left") and self.x > 0 then
-                    self.x = math.max(self.x - moveStep, 0)
-                end
+            if love.keyboard.isDown("up") then
+                movingY = true
+                self.velocity.y = math.max(self.velocity.y - (self.acceleration * timeDelta), -self.max_velocity.y)
+            end
 
-                if love.keyboard.isDown("right") and self.x < (love.window.getWidth() - self.image:getWidth()) then
-                    self.x = math.min(self.x + moveStep, (love.window.getWidth() - self.image:getWidth()))
+            if love.keyboard.isDown("down") then
+                movingY = true
+                self.velocity.y = math.min(self.velocity.y + (self.acceleration * timeDelta), self.max_velocity.y)
+            end
+
+            if love.keyboard.isDown("left") then
+                movingX = true
+                self.velocity.x = math.max(self.velocity.x - (self.acceleration * timeDelta), -self.max_velocity.x)
+            end
+
+            if love.keyboard.isDown("right") then
+                movingX = true
+                self.velocity.x = math.min(self.velocity.x + (self.acceleration * timeDelta), self.max_velocity.x)
+            end
+
+            -- Apply drag only if stopping
+            if not movingX then
+                if self.velocity.x > 0 then
+                    self.velocity.x = math.max(self.velocity.x - self.drag * timeDelta, 0)
+                elseif self.velocity.x < 0 then
+                    self.velocity.x = math.min(self.velocity.x + self.drag * timeDelta, 0)
                 end
             end
+
+            if not movingY then
+                if self.velocity.y > 0 then
+                    self.velocity.y = math.max(self.velocity.y - self.drag * timeDelta, 0)
+                elseif self.velocity.y < 0 then
+                    self.velocity.y = math.min(self.velocity.y + self.drag * timeDelta, 0)
+                end
+            end
+
+            self.position.x = self.position.x + self.velocity.x
+            self.position.y = self.position.y + self.velocity.y
+
+        end
     }
 end
 
