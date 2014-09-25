@@ -54,6 +54,7 @@ function createMap(lines, maxWidth, powerTiles, startPosition, tileWidth, tileHe
             else
                 result = {x = math.random(self.width) * tileWidth, y = math.random(self.height) * tileHeight}
             end
+            return result
         end,
 
         draw = function(self)

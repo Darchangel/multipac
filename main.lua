@@ -1,32 +1,109 @@
+DEBUG = true
+if DEBUG then
+    love.graphics.setNewFont(16)
+end
+
 local character = require("character")
 local maps = require("maps")
+local hc = require("lib.hardoncollider")
 
 local dude
 local map
-
+local collider
+local block
+time = 0
 function love.load() --[[***************************]]--
-    --if arg[#arg] == "-debug" then require("mobdebug").start() end
-    love.graphics.setBackgroundColor(0, 0, 0)
+    if arg[#arg] == "-debug" then require("mobdebug").start() end
+    collider = hc(100, on_collide)
 
-    local charImage = love.graphics.newImage("img/Red.png")
-    dude = character.create(charImage, 100, 100)
+    love.graphics.setBackgroundColor(0, 0, 0)
 
     local wallImage = love.graphics.newImage("img/wall.png")
     local powerImage = love.graphics.newImage("img/power.png")
-    map = maps.load("maps/map_wide.pacmap", wallImage, powerImage)
+    map = maps.load("maps/map_block.pacmap", wallImage, powerImage)
+
+
+    local charImage = love.graphics.newImage("img/Red.png")
+    local startingCoordinates = map:getStartCoordinates()
+    dude = character.create(collider, charImage, startingCoordinates.x, startingCoordinates.y)
 
     local dimensions = map:getDimensions()
     love.window.setMode(dimensions.width, dimensions.height)
+
+
+
+    --set the collision with the main map block
+    block = collider:addRectangle(300, 300, 180, 180)
+
 end
 
 
 function love.update(timeDelta) --[[***************************]]--
     dude:move(timeDelta)
+    time = time + timeDelta
+
+    collider:update(timeDelta)
 end
 
 
 function love.draw() --[[***************************]]--
     map:draw()
     dude:draw()
+
+    if DEBUG then
+        debugInfo()
+    end
+end
+
+function on_collide(timeDelta, shape_a, shape_b)
+    local the_dude, the_other
+
+    if shape_a == dude.shape then
+        the_dude = shape_a
+        the_other = shape_b
+    elseif shape_b == dude.shape then
+        the_dude = shape_b
+        the_other = shape_a
+    else
+        return
+    end
+    
+    local dudeX, dudeY = the_dude:center()
+    local otherX, otherY = the_other:center()
+    local otherBBx1, otherBBy1, otherBBx2, otherBBy2 = the_other:bbox()
+
+    if dudeX > otherBBx1 and dudeX < otherBBx2 then
+        if dudeY < otherY then
+            the_dude.position.y = otherBBy1 - the_dude.height
+        else
+            the_dude.position.y = otherBBy2
+        end
+    end
+
+    if dudeY > otherBBy1 and dudeY < otherBBy2 then
+        if dudeX < otherX then
+            the_dude.position.x = otherBBx1 - the_dude.width
+        else
+            the_dude.position.x = otherBBx2
+        end
+    end
+
+end
+
+function debugInfo()
+    local r, g, b = love.graphics.getColor()
+    local bgr, bgg, bgb = love.graphics.getBackgroundColor()
+    love.graphics.setBackgroundColor(255, 255, 255)
+
+    love.graphics.rectangle('fill', 0, 0, 150, 150)
+
+    love.graphics.setColor(0, 0, 0)
+    local x, y = dude.position.x, dude.position.y
+    local vx, vy = dude.velocity.x, dude.velocity.y
+    local shvx, shvy = dude.shape.velocity.x, dude.shape.velocity.y
+    love.graphics.print(string.format("time: %f\nx: %f\ny: %f\nvx: %f\nvy: %f\nsh_vx: %f\nsh_vy: %f", time, x, y, vx, vy, shvx, shvy))
+
+    love.graphics.setBackgroundColor(bgr, bgg, bgb)
+    love.graphics.setColor(r, g, b)
 end
 

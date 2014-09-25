@@ -1,16 +1,23 @@
-local MAX_SPEED = 8
-local ACCELERATION = 3.5
-local DRAG = 13
+local MAX_SPEED = 6.5
+local ACCELERATION = 50
+local DRAG = 25
 
 
-function createCharacter(image, startX, startY)
+function createCharacter(collider, image, startX, startY)
 
     local width = image:getWidth()
     local height = image:getHeight()
+    local shape = collider:addCircle(startX, startY, width/2);
+    --
+ --needed to use in collision detection
+    shape.velocity = {x = 0, y = 0}
+    shape.position = {x = startX, y = startY}
+    shape.width, shape.height = width, height
 
     return {
-        position = {x = startX, y = startY},
-        velocity = {x = 0, y = 0},
+        shape = shape,
+        velocity = shape.velocity,
+        position = shape.position,
         max_velocity = {x = MAX_SPEED, y = MAX_SPEED},
         acceleration = ACCELERATION,
         drag = DRAG,
@@ -63,6 +70,7 @@ function createCharacter(image, startX, startY)
 
             self.position.x = self.position.x + self.velocity.x
             self.position.y = self.position.y + self.velocity.y
+            self.shape:moveTo(self.position.x + width/2, self.position.y + height/2)
 
         end
     }
