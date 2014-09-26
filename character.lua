@@ -1,6 +1,6 @@
-local MAX_SPEED = 6.5
-local ACCELERATION = 50
-local DRAG = 25
+local MAX_SPEED = 1500
+local ACCELERATION = 500
+local DRAG = 600
 
 
 function createCharacter(collider, image, startX, startY)
@@ -68,8 +68,8 @@ function createCharacter(collider, image, startX, startY)
                 end
             end
 
-            self.position.x = self.position.x + self.velocity.x
-            self.position.y = self.position.y + self.velocity.y
+            self.position.x = self.position.x + (self.velocity.x * timeDelta)
+            self.position.y = self.position.y + (self.velocity.y * timeDelta)
             self.shape:moveTo(self.position.x + width/2, self.position.y + height/2)
 
         end
