@@ -1,6 +1,6 @@
-local MAX_SPEED = 1500
-local ACCELERATION = 500
-local DRAG = 600
+local MAX_SPEED = 450
+local ACCELERATION = 1200
+local DRAG = 1500
 
 
 function createCharacter(collider, image, startX, startY)
