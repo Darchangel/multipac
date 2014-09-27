@@ -1,7 +1,4 @@
 DEBUG = true
-if DEBUG then
-    love.graphics.setNewFont(16)
-end
 
 local character = require("character")
 local maps = require("maps")
@@ -11,9 +8,15 @@ local dude
 local map
 local collider
 local block
-time = 0
+
+
+if DEBUG then 
+    Monocle = require("monocle")
+    Monocle.new({})
+end
+
 function love.load() --[[***************************]]--
-    if arg[#arg] == "-debug" then require("mobdebug").start() end
+    --if arg[#arg] == "-debug" then require("mobdebug").start() end --IDE debug
     collider = hc(100, on_collide)
 
     love.graphics.setBackgroundColor(0, 0, 0)
@@ -35,24 +38,36 @@ function love.load() --[[***************************]]--
     --set the collision with the main map block
     block = collider:addRectangle(300, 300, 180, 180)
 
+
+
+    if DEBUG then
+        Monocle.watch("X", function() return dude.position.x end)
+        Monocle.watch("Y", function() return dude.position.x end)
+        Monocle.watch("Velocity X", function() return dude.velocity.x end)
+        Monocle.watch("Velocity Y", function() return dude.velocity.y end)
+    end
+
 end
 
 
-function love.update(timeDelta) --[[***************************]]--
+function love.update(timeDelta)
+    if DEBUG then
+        Monocle.update()
+    end
+
     dude:move(timeDelta)
-    time = time + timeDelta
 
     collider:update(timeDelta)
 end
 
 
-function love.draw() --[[***************************]]--
+function love.draw()
+    if DEBUG then
+        Monocle.draw()
+    end
+
     map:draw()
     dude:draw()
-
-    if DEBUG then
-        debugInfo()
-    end
 end
 
 function on_collide(timeDelta, shape_a, shape_b)
@@ -98,12 +113,18 @@ function debugInfo()
     love.graphics.rectangle('fill', 0, 0, 150, 150)
 
     love.graphics.setColor(0, 0, 0)
-    local x, y = dude.position.x, dude.position.y
-    local vx, vy = dude.velocity.x, dude.velocity.y
-    local shvx, shvy = dude.shape.velocity.x, dude.shape.velocity.y
-    love.graphics.print(string.format("time: %f\nx: %f\ny: %f\nvx: %f\nvy: %f\nsh_vx: %f\nsh_vy: %f", time, x, y, vx, vy, shvx, shvy))
 
     love.graphics.setBackgroundColor(bgr, bgg, bgb)
     love.graphics.setColor(r, g, b)
 end
 
+function love.textinput(t)
+    if DEBUG then
+        Monocle.textinput(t)
+    end
+end
+function love.keypressed(text)
+    if DEBUG then
+        Monocle.keypressed(text)
+    end
+end
