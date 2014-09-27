@@ -1,6 +1,9 @@
-local WALL_TILE = '#'
-local POWER_TILE = 'x'
-local START_TILE = '1'
+local tileTypes = {
+    WALL_TILE = '#',
+    POWER_TILE = 'x',
+    START_TILE = '1',
+    NORMAL_TILE = ' '
+}
 
 --Load all lines from a file
 function loadLines(filePath)
@@ -32,12 +35,12 @@ function index2D(x, y)
 end
 
 
-function createMap(lines, maxWidth, powerTiles, startPosition, tileWidth, tileHeight, wallTileImage, powerTileImage)
+function createMap(tiles, maxWidth, startPosition, tileWidth, tileHeight, wallTileImage, powerTileImage)
 
     return {
         width = maxWidth,
-        height = #lines,
-        powerTiles = powerTiles, --TODO: Implement normal dots
+        height = #tiles,
+        tiles = tiles,
 
         getDimensions = function(self)
             return {
@@ -58,13 +61,13 @@ function createMap(lines, maxWidth, powerTiles, startPosition, tileWidth, tileHe
         end,
 
         draw = function(self)
-            for y, line in ipairs(lines) do
+            for y, line in ipairs(self.tiles) do
                 for x, tile in ipairs(line) do
-                    if tile == POWER_TILE then
-                        if self.powerTiles[index2D(x - 1, y - 1)] then
+                    if tile.type == tileTypes.POWER_TILE then
+                        if tile.hasDot then
                             love.graphics.draw(powerTileImage, (x - 1) * tileWidth, (y - 1) * tileHeight)
                         end
-                    elseif tile == WALL_TILE then
+                    elseif tile.type == tileTypes.WALL_TILE then
                         love.graphics.draw(wallTileImage, (x - 1) * tileWidth, (y - 1) * tileHeight)
                     end
                 end
@@ -80,30 +83,51 @@ function loadMap(mapPath, wallTileImage, powerTileImage)
     local tileHeight = wallTileImage:getHeight()
     local startPosition = nil
     local maxWidth = 0
-    local powerTiles = {}
     local lines = {}
+    local tiles = {}
 
     --Parse the lines
     local mapLines = loadLines(mapPath)
     for linePosition, line in ipairs(mapLines) do
         local chars = stringExplode(line)
-        table.insert(lines, chars)
+        local tileLine = {}
 
         maxWidth = math.max(maxWidth, #chars)
 
         --Check for special tiles
         for charPosition, char in ipairs(chars) do
-            if char == POWER_TILE then
-                powerTiles[index2D(charPosition - 1, linePosition - 1)] = true
-            elseif char == START_TILE then
-                startPosition = {x = charPosition - 1, y = linePosition - 1}
+            local tile = loadTile(char, charPosition - 1, linePosition - 1)
+            if tile.type == tileTypes.START_TILE then
+                tile.type = tileTypes.NORMAL_TILE
+                startPosition = {x = tile.x, y = tile.y}
             end
+
+            table.insert(tileLine, tile)
         end
+
+        table.insert(tiles, tileLine)
     end
 
-    return createMap(lines, maxWidth, powerTiles, startPosition, tileWidth, tileHeight, wallTileImage, powerTileImage)
+    return createMap(tiles, maxWidth, startPosition, tileWidth, tileHeight, wallTileImage, powerTileImage)
+end
+
+function loadTile(char, x, y, lines)
+    tile = {
+        x = x,
+        y = y,
+        type = char
+    }
+
+
+    if char == tileTypes.NORMAL_TILE or char == tileTypes.POWER_TILE then
+        tile.hasDot = true
+    end
+
+    return tile
+
 end
 
 return {
-    load = loadMap
+    load = loadMap,
+    tileTypes = tileTypes
 }
