@@ -16,7 +16,7 @@ if DEBUG then
 end
 
 function love.load() --[[***************************]]--
-    --if arg[#arg] == "-debug" then require("mobdebug").start() end --IDE debug
+    if arg[#arg] == "-debug" then require("mobdebug").start() end --IDE debug
     collider = hc(100, on_collide)
 
     love.graphics.setBackgroundColor(0, 0, 0)
@@ -103,19 +103,6 @@ function on_collide(timeDelta, shape_a, shape_b)
         end
     end
 
-end
-
-function debugInfo()
-    local r, g, b = love.graphics.getColor()
-    local bgr, bgg, bgb = love.graphics.getBackgroundColor()
-    love.graphics.setBackgroundColor(255, 255, 255)
-
-    love.graphics.rectangle('fill', 0, 0, 150, 150)
-
-    love.graphics.setColor(0, 0, 0)
-
-    love.graphics.setBackgroundColor(bgr, bgg, bgb)
-    love.graphics.setColor(r, g, b)
 end
 
 function love.textinput(t)
