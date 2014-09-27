@@ -35,7 +35,7 @@ function index2D(x, y)
 end
 
 
-function createMap(tiles, maxWidth, startPosition, tileWidth, tileHeight, wallTileImage, powerTileImage)
+function createMap(tiles, maxWidth, startPosition, tileWidth, tileHeight, wallTileImage, powerTileImage, dotImage)
 
     return {
         width = maxWidth,
@@ -69,6 +69,8 @@ function createMap(tiles, maxWidth, startPosition, tileWidth, tileHeight, wallTi
                         end
                     elseif tile.type == tileTypes.WALL_TILE then
                         love.graphics.draw(wallTileImage, (x - 1) * tileWidth, (y - 1) * tileHeight)
+                    elseif tile.type == tileTypes.NORMAL_TILE and tile.hasDot then
+                        love.graphics.draw(dotImage, (x - 1) * tileWidth, (y - 1) * tileHeight)
                     end
                 end
             end
@@ -78,7 +80,7 @@ function createMap(tiles, maxWidth, startPosition, tileWidth, tileHeight, wallTi
 end
 
 --Loads a map text file into an object
-function loadMap(mapPath, wallTileImage, powerTileImage)
+function loadMap(mapPath, wallTileImage, powerTileImage, dotImage)
     local tileWidth = wallTileImage:getWidth()
     local tileHeight = wallTileImage:getHeight()
     local startPosition = nil
@@ -108,7 +110,7 @@ function loadMap(mapPath, wallTileImage, powerTileImage)
         table.insert(tiles, tileLine)
     end
 
-    return createMap(tiles, maxWidth, startPosition, tileWidth, tileHeight, wallTileImage, powerTileImage)
+    return createMap(tiles, maxWidth, startPosition, tileWidth, tileHeight, wallTileImage, powerTileImage, dotImage)
 end
 
 function loadTile(char, x, y, lines)

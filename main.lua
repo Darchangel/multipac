@@ -12,7 +12,7 @@ local block
 
 if DEBUG then 
     Monocle = require("monocle")
-    Monocle.new({})
+    Monocle.new({'main.lua', 'maps.lua', 'character.lua'})
 end
 
 function love.load() --[[***************************]]--
@@ -23,7 +23,8 @@ function love.load() --[[***************************]]--
 
     local wallImage = love.graphics.newImage("img/wall.png")
     local powerImage = love.graphics.newImage("img/power.png")
-    map = maps.load("maps/map_block.pacmap", wallImage, powerImage)
+    local dotImage = love.graphics.newImage("img/dot.png")
+    map = maps.load("maps/map_block.pacmap", wallImage, powerImage, dotImage)
 
 
     local charImage = love.graphics.newImage("img/Red.png")
