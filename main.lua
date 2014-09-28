@@ -21,10 +21,10 @@ function love.load() --[[***************************]]--
 
     love.graphics.setBackgroundColor(0, 0, 0)
 
-    local wallImage = love.graphics.newImage("img/wall.png")
+    local wallDir = "img/walls"
     local powerImage = love.graphics.newImage("img/power.png")
     local dotImage = love.graphics.newImage("img/dot.png")
-    map = maps.load("maps/map_block.pacmap", wallImage, powerImage, dotImage)
+    map = maps.load("maps/map_block.pacmap", wallDir, powerImage, dotImage)
 
 
     local charImage = love.graphics.newImage("img/Red.png")

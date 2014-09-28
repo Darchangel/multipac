@@ -30,12 +30,7 @@ function stringExplode(string)
     return chars
 end
 
-function index2D(x, y)
-    return tostring(x)..":"..tostring(y)
-end
-
-
-function createMap(tiles, maxWidth, startPosition, tileWidth, tileHeight, wallTileImage, powerTileImage, dotImage)
+function createMap(tiles, maxWidth, startPosition, tileWidth, tileHeight, wallTileImageDir, powerTileImage, dotImage)
 
     return {
         width = maxWidth,
@@ -68,7 +63,7 @@ function createMap(tiles, maxWidth, startPosition, tileWidth, tileHeight, wallTi
                             love.graphics.draw(powerTileImage, (x - 1) * tileWidth, (y - 1) * tileHeight)
                         end
                     elseif tile.type == tileTypes.WALL_TILE then
-                        love.graphics.draw(wallTileImage, (x - 1) * tileWidth, (y - 1) * tileHeight)
+                        love.graphics.draw(wallTileImageDir.."/"..tile.imageCode..".png", (x - 1) * tileWidth, (y - 1) * tileHeight)
                     elseif tile.type == tileTypes.NORMAL_TILE and tile.hasDot then
                         love.graphics.draw(dotImage, (x - 1) * tileWidth, (y - 1) * tileHeight)
                     end
@@ -80,7 +75,8 @@ function createMap(tiles, maxWidth, startPosition, tileWidth, tileHeight, wallTi
 end
 
 --Loads a map text file into an object
-function loadMap(mapPath, wallTileImage, powerTileImage, dotImage)
+function loadMap(mapPath, wallTileImageDir, powerTileImage, dotImage)
+
     local tileWidth = wallTileImage:getWidth()
     local tileHeight = wallTileImage:getHeight()
     local startPosition = nil
@@ -96,7 +92,6 @@ function loadMap(mapPath, wallTileImage, powerTileImage, dotImage)
 
         maxWidth = math.max(maxWidth, #chars)
 
-        --Check for special tiles
         for charPosition, char in ipairs(chars) do
             local tile = loadTile(char, charPosition - 1, linePosition - 1)
             if tile.type == tileTypes.START_TILE then
@@ -110,7 +105,7 @@ function loadMap(mapPath, wallTileImage, powerTileImage, dotImage)
         table.insert(tiles, tileLine)
     end
 
-    return createMap(tiles, maxWidth, startPosition, tileWidth, tileHeight, wallTileImage, powerTileImage, dotImage)
+    return createMap(tiles, maxWidth, startPosition, tileWidth, tileHeight, wallTileImageDir, powerTileImage, dotImage)
 end
 
 function loadTile(char, x, y, lines)
@@ -120,14 +115,42 @@ function loadTile(char, x, y, lines)
         type = char
     }
 
-
     if char == tileTypes.NORMAL_TILE or char == tileTypes.POWER_TILE then
         tile.hasDot = true
+    elseif char == tileTypes.WALL_TILE then
+        tile.imageCode = checkSurroundings(y + 1, x + 1, lines)
     end
 
     return tile
-
 end
+
+function checkSurroundings(line, column, lines)
+    local surroundings = ""
+    local isCorner = false
+
+    function boolToBinary(bool)
+        local result
+        if bool then
+            result = "1"
+        else
+            result = "0"
+        end
+
+        return result
+    end
+
+    surroundings = surroundings..boolToBinary(line - 1 > 0 and lines[line-1][column] == tileTypes.WALL_TILE)
+                               ..boolToBinary(line - 1 > 0 and column + 1 > #lines[line] and lines[line-1][column+1] == tileTypes.WALL_TILE)
+                               ..boolToBinary(column + 1 > #lines[line] and lines[line][column+1] == tileTypes.WALL_TILE)
+                               ..boolToBinary(line + 1 > #lines and column + 1 > #lines[line] and lines[line+1][column+1] == tileTypes.WALL_TILE)
+                               ..boolToBinary(line + 1 > #lines and lines[line+1][column] == tileTypes.WALL_TILE)
+                               ..boolToBinary(line + 1 > #lines and column - 1 > 0 and lines[line+1][column-1] == tileTypes.WALL_TILE)
+                               ..boolToBinary(column - 1 > 0 and lines[line][column-1] == tileTypes.WALL_TILE)
+                               ..boolToBinary(line - 1 > 0 and column - 1 > 0 and lines[line-1][column-1] == tileTypes.WALL_TILE)
+               
+    return surroundings
+end
+
 
 return {
     load = loadMap,
