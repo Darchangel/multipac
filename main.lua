@@ -7,7 +7,7 @@ local hc = require("lib.hardoncollider")
 local dude
 local map
 local collider
-local block
+local colliding = 0
 
 
 if DEBUG then 
@@ -24,7 +24,7 @@ function love.load() --[[***************************]]--
     local wallDir = "img/walls"
     local powerImage = love.graphics.newImage("img/power.png")
     local dotImage = love.graphics.newImage("img/dot.png")
-    map = maps.load("maps/map_block.pacmap", wallDir, powerImage, dotImage)
+    map = maps.load(collider, "maps/map_wide.pacmap", wallDir, powerImage, dotImage)
 
 
     local charImage = love.graphics.newImage("img/Red.png")
@@ -37,7 +37,7 @@ function love.load() --[[***************************]]--
 
 
     --set the collision with the main map block
-    block = collider:addRectangle(300, 300, 180, 180)
+    --block = collider:addRectangle(300, 300, 180, 180)
 
 
 
@@ -46,6 +46,22 @@ function love.load() --[[***************************]]--
         Monocle.watch("Y", function() return dude.position.x end)
         Monocle.watch("Velocity X", function() return dude.velocity.x end)
         Monocle.watch("Velocity Y", function() return dude.velocity.y end)
+        Monocle.watch("Colliding", function() return colliding end)
+        Monocle.watch("Shapes", function() return #map.collisionShapes end)
+
+        --local xx, yy, xx2, yy2 = {}, {}, {}, {}
+        --for i, shape in ipairs(map.collisionShapes) do
+            --local shx, shy, shx2, shy2 = map.collisionShapes[1]:bbox()
+            --table.insert(xx, shx)
+            --table.insert(yy, shy)
+            --table.insert(xx2, shx2)
+            --table.insert(yy2, shy2)
+            --Monocle.watch("Shape#"..i..".x1", function() return xx[i] end)
+            --Monocle.watch("Shape#"..i..".y1", function() return yy[i] end)
+            --Monocle.watch("Shape#"..i..".x1", function() return xx2[i] end)
+            --Monocle.watch("Shape#"..i..".y1", function() return yy2[i] end)
+        --end
+
     end
 
 end
@@ -73,6 +89,7 @@ end
 
 function on_collide(timeDelta, shape_a, shape_b)
     local the_dude, the_other
+    colliding = 1
 
     if shape_a == dude.shape then
         the_dude = shape_a
@@ -104,6 +121,10 @@ function on_collide(timeDelta, shape_a, shape_b)
         end
     end
 
+end
+
+function collision_stop(dt, shape_a, shape_b)
+    colliding = 0
 end
 
 function love.textinput(t)

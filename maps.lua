@@ -1,3 +1,9 @@
+local hc = require("lib.hardoncollider")
+local Class = require("lib.hardoncollider.class")
+local polygon = require("lib.hardoncollider.polygon")
+local shapes = require("lib.hardoncollider.shapes")
+local objects = require("objects")
+
 local tileTypes = {
     WALL_TILE = '#',
     POWER_TILE = 'x',
@@ -30,12 +36,25 @@ function stringExplode(string)
     return chars
 end
 
-function createMap(tiles, maxWidth, startPosition, tileWidth, tileHeight, wallTileImageDir, powerTileImage, dotImage)
+function createMap(collider, tiles, collisionPolygons, maxWidth, startPosition, tileWidth, tileHeight, wallTileImageDir, powerTileImage, dotImage)
+    local polygonShapes = {}
+
+    for i, polygon in ipairs(collisionPolygons) do
+        local shape = shapes.newPolygonShape(polygon)
+        shape.type = objects.MAP
+
+        collider:addShape(shape)
+
+        table.insert(polygonShapes, shape)
+    end
+
+    local tileImageCache = {}
 
     return {
         width = maxWidth,
         height = #tiles,
         tiles = tiles,
+        collisionShapes = polygonShapes,
 
         getDimensions = function(self)
             return {
@@ -63,7 +82,13 @@ function createMap(tiles, maxWidth, startPosition, tileWidth, tileHeight, wallTi
                             love.graphics.draw(powerTileImage, (x - 1) * tileWidth, (y - 1) * tileHeight)
                         end
                     elseif tile.type == tileTypes.WALL_TILE then
-                        love.graphics.draw(wallTileImageDir.."/"..tile.imageCode..".png", (x - 1) * tileWidth, (y - 1) * tileHeight)
+                        local image = tileImageCache[tile.imageCode]
+                        if not image then
+                            image = love.graphics.newImage(wallTileImageDir.."/"..tile.imageCode..".png")
+                            tileImageCache[tile.imageCode] = image
+                        end
+
+                        love.graphics.draw(image, (x - 1) * tileWidth, (y - 1) * tileHeight)
                     elseif tile.type == tileTypes.NORMAL_TILE and tile.hasDot then
                         love.graphics.draw(dotImage, (x - 1) * tileWidth, (y - 1) * tileHeight)
                     end
@@ -75,28 +100,70 @@ function createMap(tiles, maxWidth, startPosition, tileWidth, tileHeight, wallTi
 end
 
 --Loads a map text file into an object
-function loadMap(mapPath, wallTileImageDir, powerTileImage, dotImage)
+function loadMap(collider, mapPath, wallTileImageDir, powerTileImage, dotImage)
 
-    local tileWidth = wallTileImage:getWidth()
-    local tileHeight = wallTileImage:getHeight()
+    local tileWidth = powerTileImage:getWidth()
+    local tileHeight = powerTileImage:getHeight()
     local startPosition = nil
     local maxWidth = 0
     local lines = {}
     local tiles = {}
+    local collisionPolygons = {}
+    local splitLines = {}
 
-    --Parse the lines
     local mapLines = loadLines(mapPath)
     for linePosition, line in ipairs(mapLines) do
         local chars = stringExplode(line)
+        table.insert(splitLines, chars)
+    end
+
+    for linePosition, chars in ipairs(splitLines) do
         local tileLine = {}
 
         maxWidth = math.max(maxWidth, #chars)
 
         for charPosition, char in ipairs(chars) do
-            local tile = loadTile(char, charPosition - 1, linePosition - 1)
+            local tile = loadTile(char, charPosition - 1, linePosition - 1, splitLines)
             if tile.type == tileTypes.START_TILE then
                 tile.type = tileTypes.NORMAL_TILE
                 startPosition = {x = tile.x, y = tile.y}
+            elseif tile.type == tileTypes.WALL_TILE then 
+                local polyX = tile.x * tileWidth
+                local polyY = tile.y * tileHeight
+
+                local thisPolygon = polygon(polyX, polyY, polyX + tileWidth, polyY, polyX + tileWidth, polyY + tileHeight, polyX, polyY + tileHeight)
+                local wasMerged = false
+                local toRemove = {}
+
+                for i, polygon in ipairs(collisionPolygons) do
+                    local merged 
+                    
+                    --Only merges polygons with one complete edge in common. Will generate a lot of straight-line polygons
+                    local mergeSuccess = pcall(function () merged = thisPolygon:mergedWith(polygon) end) 
+
+                    if mergeSuccess then
+                        collisionPolygons[i] = merged -- Replace previous polygon with merged one
+
+                        --Check if previous poly was already in the list (repeated). If so, mark it for removal
+                        for j=i, 1, -1 do
+                            if collisionPolygons[j] == thisPolygon then
+                                table.insert(toRemove, j)
+                            end
+                        end
+
+                        thisPolygon = merged
+                        wasMerged = true
+                    end
+                end
+
+                if not wasMerged then
+                    table.insert(collisionPolygons, thisPolygon)
+                end
+
+                for i, remove in ipairs(toRemove) do   -- Remove repeated polygons
+                    table.remove(collisionPolygons, remove)
+                end
+
             end
 
             table.insert(tileLine, tile)
@@ -105,7 +172,7 @@ function loadMap(mapPath, wallTileImageDir, powerTileImage, dotImage)
         table.insert(tiles, tileLine)
     end
 
-    return createMap(tiles, maxWidth, startPosition, tileWidth, tileHeight, wallTileImageDir, powerTileImage, dotImage)
+    return createMap(collider, tiles, collisionPolygons, maxWidth, startPosition, tileWidth, tileHeight, wallTileImageDir, powerTileImage, dotImage)
 end
 
 function loadTile(char, x, y, lines)
@@ -126,7 +193,6 @@ end
 
 function checkSurroundings(line, column, lines)
     local surroundings = ""
-    local isCorner = false
 
     function boolToBinary(bool)
         local result
@@ -140,14 +206,14 @@ function checkSurroundings(line, column, lines)
     end
 
     surroundings = surroundings..boolToBinary(line - 1 > 0 and lines[line-1][column] == tileTypes.WALL_TILE)
-                               ..boolToBinary(line - 1 > 0 and column + 1 > #lines[line] and lines[line-1][column+1] == tileTypes.WALL_TILE)
+                               ..boolToBinary(line - 1 > 0 and column + 1 <= #lines[line] and lines[line-1][column+1] == tileTypes.WALL_TILE)
                                ..boolToBinary(column + 1 > #lines[line] and lines[line][column+1] == tileTypes.WALL_TILE)
-                               ..boolToBinary(line + 1 > #lines and column + 1 > #lines[line] and lines[line+1][column+1] == tileTypes.WALL_TILE)
-                               ..boolToBinary(line + 1 > #lines and lines[line+1][column] == tileTypes.WALL_TILE)
-                               ..boolToBinary(line + 1 > #lines and column - 1 > 0 and lines[line+1][column-1] == tileTypes.WALL_TILE)
+                               ..boolToBinary(line + 1 <= #lines and column + 1 <= #lines[line] and lines[line+1][column+1] == tileTypes.WALL_TILE)
+                               ..boolToBinary(line + 1 <= #lines and lines[line+1][column] == tileTypes.WALL_TILE)
+                               ..boolToBinary(line + 1 <= #lines and column - 1 > 0 and lines[line+1][column-1] == tileTypes.WALL_TILE)
                                ..boolToBinary(column - 1 > 0 and lines[line][column-1] == tileTypes.WALL_TILE)
                                ..boolToBinary(line - 1 > 0 and column - 1 > 0 and lines[line-1][column-1] == tileTypes.WALL_TILE)
-               
+
     return surroundings
 end
 
